@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Movie Collection</title>
+  <style>
+    .actors-wrapper {
+      position: relative; /* tooltip is positioned relative to this */
+      max-width: 300px;   /* same as before */
+    }
+
+    .actors-cell {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;   /* only clip text, not tooltip */
+      line-clamp: 2;
+      cursor: help;
+    }
+
+    .actors-cell::after {
+      content: attr(data-full);
+      position: absolute;
+      left: 0;
+      top: 100%;
+      margin-top: 4px;
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 8px;
+      width: 320px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      white-space: normal;
+      z-index: 9999;
+
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .actors-cell:hover::after {
+      opacity: 1;
+    }
+    .actors-cell.show-tooltip::after {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  </style>
+</head>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const LONG_PRESS_DURATION = 500; // ms
+
+    const actorCells = document.querySelectorAll('.actors-cell');
+    let pressTimer = null;
+
+    actorCells.forEach(cell => {
+      // touchstart: start long press timer
+      cell.addEventListener('touchstart', (e) => {
+        pressTimer = setTimeout(() => {
+          cell.classList.add('show-tooltip');
+        }, LONG_PRESS_DURATION);
+      });
+
+      // touchend / touchmove / touchcancel: cancel if released early
+      const cancel = () => clearTimeout(pressTimer);
+      cell.addEventListener('touchend', cancel);
+      cell.addEventListener('touchmove', cancel);
+      cell.addEventListener('touchcancel', cancel);
+
+      // optional: tap outside hides tooltip
+      document.addEventListener('touchstart', (e) => {
+        if (!cell.contains(e.target)) {
+          cell.classList.remove('show-tooltip');
+        }
+      });
+    });
+  });
+</script>
+<body>
+  <h1>Movie Database</h1>
+  <img src="{{ url_for('static', filename='images/TMDB.png') }}" alt="Logo" style="height: 80px;">
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul>
+        {% for category, message in messages %}
+          <li><strong>{{ category }}:</strong> {{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+
+  <h2>Upload Movie Cover Image (Extract and Add)</h2>
+  <form action="/upload-image" method="post" enctype="multipart/form-data">
+    <input type="file" name="image" accept="image/*" required>
+    <button type="submit">Upload Image</button>
+  </form>
+
+  <h2>Add Movie by Title</h2>
+  <form action="/add-by-title" method="post">
+    <input type="text" name="title" placeholder="Enter movie title" required>
+    <button type="submit">Add movie</button>
+  </form>
+
+  <h2>Search Movies</h2>
+  <form action="/search" method="post">
+    <input type="text" name="title" placeholder="Title">
+    <input type="number" name="year" placeholder="e.g., 1938">
+    <input type="number" name="runtime" placeholder="e.g., 107">
+    <input type="text" name="actors" placeholder="Actor">
+    <input type="text" name="notes" placeholder="Notes">
+    </select>
+    <button type="submit">Search</button>
+  </form>
+
+  <h2>Search by Image</h2>
+  <form action="/search-by-image" method="post" enctype="multipart/form-data">
+    <input type="file" name="image" accept="image/*" required>
+    <button type="submit">Search from Image</button>
+  </form>
+
+  <h2>Movie List</h2>
+  {% if searched %}
+    <p><a href="{{ url_for('clear') }}"><button type="button">Return to Full List</button></a></p>
+  {% endif %}
+  <table border="1">
+    <tr>
+      <th><a href="{{ url_for('index', sort='title') }}">Title{% if sort_by == 'title' %} ▲{% endif %}</a></th>
+      <th><a href="{{ url_for('index', sort='year') }}">Year{% if sort_by == 'year' %} ▲{% endif %}</a></th>
+      <th><a href="{{ url_for('index', sort='runtime') }}">Runtime{% if sort_by == 'runtime' %} ▲{% endif %}</a></th>
+      <th><a href="{{ url_for('index', sort='actors') }}">Actor(s){% if sort_by == 'actors' %} ▲{% endif %}</a></th>
+      <th><a href="{{ url_for('index', sort='notes') }}">Notes{% if sort_by == 'notes' %} ▲{% endif %}</a></th>
+      <th>Actions</th>
+    </tr>
+    {% for movie in movies %}
+    <tr>
+      <td>{{ movie.Title }}</td>
+      <td>{{ movie.Year }}</td>
+      <td>{{ movie.Runtime }}</td>
+      <td>
+        <div class="actors-wrapper">
+          <div class="actors-cell" data-full="{{ movie.Actors }}">
+            {{ movie.Actors }}
+          </div>
+        </div>
+      </td>
+      <td>{{ movie.Notes }}</td>
+      <td><a href="{{ url_for('edit', title=movie.Title) }}">Edit</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+</body>
+</html>

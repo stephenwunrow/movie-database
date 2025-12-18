@@ -1,0 +1,12 @@
+credentials.json
+__pycache__/
+*.pyc
+.env
+Movies.tsv
+instance/
+uploads/
+.vscode/
+.idea/
+*.db
+*.sqlite3
+venv

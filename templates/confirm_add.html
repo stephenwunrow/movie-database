@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Confirm Movie Add</title>
+</head>
+<body>
+  <h1>Confirm Adding "{{ original_title.Title }}"</h1>
+  <ul>
+    <li><strong>Year:</strong> {{ original_title.Year }}</li>
+    <li><strong>Runtime:</strong> {{ original_title.Runtime }}</li>
+    <li><strong>Actors:</strong> {{ original_title.Actors }}</li>
+  </ul>
+  <form action="{{ url_for('confirm_add') }}" method="post">
+    <input type="hidden" name="selected_movie_id" value="{{ original_title.ID }}">
+    <button type="submit">Add This Movie</button>
+  </form>
+  <p><a href="{{ url_for('index') }}">Cancel</a></p>
+</body>
+</html>
