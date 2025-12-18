@@ -193,13 +193,13 @@ def logout():
 def index():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    download_tsv_from_gdrive()
     sort_by = request.args.get('sort')
 
     if 'search_results' in session:
         movies = json.loads(session['search_results'])  # load filtered movies
         searched = True
     else:
+        download_tsv_from_gdrive()
         movies = load_tsv()
         searched = False
 
