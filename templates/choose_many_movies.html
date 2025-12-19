@@ -13,6 +13,9 @@
       </div>
     {% endfor %}
     <button type="submit">Add Selected Movie</button>
+    <button type="submit" name="action" value="reject">
+      Reject This Movie
+    </button>
   </form>
   <p><a href="{{ url_for('index') }}">Cancel</a></p>
 </body>
