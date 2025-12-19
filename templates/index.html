@@ -124,6 +124,11 @@
   {% if searched %}
     <p><a href="{{ url_for('clear') }}"><button type="button">Return to Full List</button></a></p>
   {% endif %}
+  {% if searched %}
+    <p>Matching result{{ 's' if count != 1 else '' }}: {{ count }}</p>
+  {% else %}
+    <p>Total movies: {{ count }}</p>
+  {% endif %}
   <table border="1">
     <tr>
       <th><a href="{{ url_for('index', sort='title') }}">Title{% if sort_by == 'title' %} ▲{% endif %}</a></th>

@@ -74,6 +74,10 @@ def extract_titles_from_image(image_path):
 
     titles_text = response.text.strip()
     titles = [line.strip() for line in titles_text.split('\n') if line.strip()]
+    for title in titles:
+        title = strip_punctuation(title.lower())
+        title = re.sub('’', '\'', title)
+        title = re.sub('  ', ' ', title)
     if titles:
         flash(f"Gemini extracted {len(titles)} title(s): " + ", ".join(titles), "info")
     else:
@@ -94,6 +98,7 @@ def search_tmdb_movies(title):
     }
 
     response = requests.get(url, params=params)
+    print(url, params)
     if response.status_code != 200:
         print("Error:", response.status_code)
         return []
@@ -108,7 +113,8 @@ def search_tmdb_movies(title):
 
     for movie in results:
         movie_title = movie.get("title", "")
-        movie_title_clean = strip_punctuation(movie_title.lower())
+        movie_title_clean = strip_punctuation(movie_title.lower().strip())
+        movie_title_clean = re.sub('  ', ' ', movie_title_clean)
         year = movie.get("release_date", "").split("-")[0]
 
         # Match exact title or partial match containing search term
@@ -199,10 +205,13 @@ def index():
     if 'search_results' in session:
         movies = json.loads(session['search_results'])  # load filtered movies
         searched = True
+
     else:
         download_tsv_from_gdrive()
         movies = load_tsv()
         searched = False
+    count = len(movies)
+    print(count)
 
     if sort_by:
         if sort_by == 'title':
@@ -216,7 +225,7 @@ def index():
         elif sort_by == 'notes':
             movies.sort(key=lambda g: g['Notes'].lower() if g['Notes'] else '')
 
-    return render_template('index.html', movies=movies, searched=searched, sort_by=sort_by)
+    return render_template('index.html', movies=movies, searched=searched, sort_by=sort_by, count=count)
 
 
 @app.route('/upload-image', methods=['POST'])
@@ -288,7 +297,34 @@ def process_next_title():
     current_title = pending_titles[0]
 
     if request.method == 'POST':
+        action = request.form.get('action')
         selected_movie_id = request.form.get('selected_movie_id')
+
+        if action == 'reject':
+            # Skip this title entirely
+            pending_titles.pop(0)
+            session['pending_titles'] = pending_titles
+            session['selected_movies'] = selected_movies
+            session.modified = True
+
+            if pending_titles:
+                return redirect(url_for('process_next_title'))
+            else:
+                # Same end-of-queue behavior as before
+                pending_movies = []
+                for movie_id in selected_movies:
+                    details = get_tmdb_movie_details(movie_id)
+                    if details:
+                        pending_movies.append({
+                            'original_title': details['Title'],
+                            'matches': [details]
+                        })
+                session['pending_movies'] = pending_movies
+                session.pop('pending_titles', None)
+                session.modified = True
+
+                return redirect(url_for('confirm_add_all'))
+        
         if not selected_movie_id:
             flash("Please select a movie to add.", "error")
             # We'll re-render page below
@@ -391,7 +427,7 @@ def add_by_title():
     session.pop('pending_movies', None)
 
     title = request.form.get('title')
-    title = re.sub('’', '\'', title)
+    title = re.sub('(’|‘)', '\'', title)
     if not title:
         flash("Please enter a movie title", "error")
         return redirect(url_for('index'))
@@ -402,6 +438,8 @@ def add_by_title():
         return redirect(url_for('index'))
 
     # Search BGG for multiple matches
+    title = strip_punctuation(title.lower())
+    title = title.strip()
     matches = search_tmdb_movies(title)
     if not matches:
         flash(f"No matches found for '{title}' on TMDb.", "error")
@@ -467,11 +505,11 @@ def search():
         sort_by = request.args.get('sort') or None
 
         # Get all search fields, default empty strings
-        title = request.form.get('title', '').lower()
-        year = request.form.get('year', '').lower()
-        runtime = request.form.get('runtime', '')
-        actors = request.form.get('actors', '').lower()
-        notes = request.form.get('notes', '').lower()
+        title = request.form.get('title', '').lower().strip()
+        year = request.form.get('year', '').lower().strip()
+        runtime = request.form.get('runtime', '').strip()
+        actors = request.form.get('actors', '').lower().strip()
+        notes = request.form.get('notes', '').lower().strip()
 
         def matches(movie):
             if title and title not in movie['Title'].lower():
@@ -502,7 +540,9 @@ def search():
         # Store filtered results in session for consistency
         session['search_results'] = json.dumps(filtered)
 
-        return render_template('index.html', movies=filtered, sort_by=sort_by, searched=True)
+        count = len(filtered)
+
+        return render_template('index.html', movies=filtered, sort_by=sort_by, searched=True, count=count)
 
     # GET request shows all movies
     sort_by = request.args.get('sort')
@@ -514,8 +554,10 @@ def search():
 
     if sort_by:
         movies = sort_movies(movies, sort_by)
+    
+    count = len(movies)
 
-    return render_template('index.html', movies=movies, sort_by=sort_by, searched=searched)
+    return render_template('index.html', movies=movies, sort_by=sort_by, searched=searched, count=count)
 
 @app.route('/edit/<title>', methods=['GET', 'POST'])
 def edit(title):
