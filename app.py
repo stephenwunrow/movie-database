@@ -10,6 +10,7 @@ from gdrive_helper import download_tsv_from_gdrive, upload_tsv_to_gdrive
 from google import genai
 from google.genai import types
 import string
+import re
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -237,6 +238,8 @@ def upload_image():
     file.save(temp_path)
 
     titles = extract_titles_from_image(temp_path)
+    for title in titles:
+        title = re.sub('’', '\'', title)
     if not titles:
         flash("No titles detected in image", "error")
         return redirect(url_for('index'))
@@ -388,6 +391,7 @@ def add_by_title():
     session.pop('pending_movies', None)
 
     title = request.form.get('title')
+    title = re.sub('’', '\'', title)
     if not title:
         flash("Please enter a movie title", "error")
         return redirect(url_for('index'))
