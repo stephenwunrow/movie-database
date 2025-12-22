@@ -2,6 +2,7 @@ import os
 import csv
 import tempfile
 from flask import Flask, request, render_template, redirect, url_for, flash, session
+from flask_session import Session
 import json
 from werkzeug.utils import secure_filename
 import requests
@@ -42,7 +43,7 @@ def save_tsv(movies):
     upload_tsv_to_gdrive()
 
 def extract_titles_from_image(image_path):
-    client = genai.Client(api_key=GEMINI_API_KEY, http_options={'api_version': 'v1alpha'})
+    client = genai.Client(api_key=GEMINI_API_KEY, http_options={'api_version': 'v1'})
 
     with open(image_path, "rb") as f:
         image_bytes = f.read()
@@ -64,10 +65,10 @@ def extract_titles_from_image(image_path):
         response = try_model("gemini-2.5-flash")
         flash("Used model: gemini-2.5-flash", "info")
     except Exception as e:
-        flash(f"gemini-2.5-flash failed with error: {e}. Trying gemini-2.0-flash...", "warning")
+        flash(f"gemini-2.5-flash failed with error: {e}. Trying gemini-2.5-flash-lite...", "warning")
         try:
-            response = try_model("gemini-2.0-flash")
-            flash("Used model: gemini-2.0-flash", "info")
+            response = try_model("gemini-2.5-flash-lite")
+            flash("Used model: gemini-2.5-flash-lite", "info")
         except Exception as e2:
             flash(f"Both models failed. Last error: {e2}", "error")
             return []
@@ -98,7 +99,6 @@ def search_tmdb_movies(title):
     }
 
     response = requests.get(url, params=params)
-    print(url, params)
     if response.status_code != 200:
         print("Error:", response.status_code)
         return []
@@ -177,6 +177,17 @@ def sort_movies(movies, sort_by):
     else:
         return movies  # return as-is for default order
 
+# --- Session ---
+
+app.config['SECRET_KEY'] = 'your-existing-secret-key'
+
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_FILE_DIR'] = './flask_session'  # folder will be created
+app.config['SESSION_PERMANENT'] = False
+app.config['SESSION_USE_SIGNER'] = True
+
+Session(app)
+
 # --- Routes ---
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -211,7 +222,6 @@ def index():
         movies = load_tsv()
         searched = False
     count = len(movies)
-    print(count)
 
     if sort_by:
         if sort_by == 'title':
