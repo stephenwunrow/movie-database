@@ -399,14 +399,14 @@ def confirm_add_all():
 
     if request.method == 'POST':
         movies = load_tsv()
-        existing_titles = {g['Title'].lower() for g in movies}
+        existing_ids = {g['ID'] for g in movies}
         newly_added = 0
         for movie_id in selected_movie_ids:
             details = get_tmdb_movie_details(movie_id)
-            if details and details['Title'].lower() not in existing_titles:
+            if details and details['ID'] not in existing_ids:
                 movies.insert(0, details)
                 newly_added += 1
-                existing_titles.add(details['Title'].lower())
+                existing_ids.add(details['ID'])
 
         save_tsv(movies)
         flash(f"Added {newly_added} new movies to the database.", "success")
@@ -443,9 +443,6 @@ def add_by_title():
         return redirect(url_for('index'))
 
     movies = load_tsv()
-    if any(g['Title'].lower() == title.lower() for g in movies):
-        flash(f"{title} is already in the database.", "info")
-        return redirect(url_for('index'))
 
     # Search BGG for multiple matches
     title = strip_punctuation(title.lower())
@@ -457,7 +454,12 @@ def add_by_title():
 
     # If only one match, add it directly
     if len(matches) == 1:
-        return redirect(url_for('confirm_add', selected_movie_id=matches[0]['id']))
+        match_id = matches[0]["id"]
+        if any(g['ID'] == match_id for g in movies):
+            flash(f"{title} is already in the database.", "info")
+            return redirect(url_for('index'))
+        else:
+            return redirect(url_for('confirm_add', selected_movie_id=match_id))
 
     # Otherwise, show selection template
     return render_template('choose_movie.html', matches=matches, original_title=title)
@@ -480,9 +482,12 @@ def confirm_add():
             return redirect(url_for('index'))
 
         movies = load_tsv()
-        if any(g['Title'].lower() == details['Title'].lower() for g in movies):
+        movie_id = str(details.get("id") or details.get("ID"))
+
+        if any(g.get("ID") == movie_id for g in movies):
             flash(f"'{details['Title']}' is already in the database.", "info")
         else:
+            details["ID"] = movie_id   # normalize before saving
             movies.insert(0, details)
             save_tsv(movies)
             flash(f"Added '{details['Title']}' to the database.", "success")
