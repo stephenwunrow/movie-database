@@ -153,7 +153,7 @@ def get_tmdb_movie_details(movie_id):
     
     # Build the result dictionary
     details = {
-        "ID": movie_data.get("id"),
+        "ID": str(movie_data.get("id")),
         "Title": movie_data.get("title", ""),
         "Year": movie_data.get("release_date", "").split("-")[0] if movie_data.get("release_date") else "",
         "Runtime": movie_data.get("runtime", ""),  # in minutes
@@ -265,10 +265,9 @@ def upload_image():
 
     download_tsv_from_gdrive()
     movies = load_tsv()
-    existing_titles = {g['Title'].lower() for g in movies}
 
     # Queue titles not already in the TSV
-    session['pending_titles'] = [t for t in titles if t.lower() not in existing_titles]
+    session['pending_titles'] = titles
     session['selected_movies'] = []
     session.modified = True
 
@@ -399,7 +398,7 @@ def confirm_add_all():
 
     if request.method == 'POST':
         movies = load_tsv()
-        existing_ids = {g['ID'] for g in movies}
+        existing_ids = {str(g['ID']) for g in movies}
         newly_added = 0
         old_titles = []
         for movie_id in selected_movie_ids:
@@ -408,7 +407,7 @@ def confirm_add_all():
             if not details:
                 continue
 
-            if details['ID'] not in existing_ids:
+            if str(details['ID']) not in existing_ids:
                 movies.insert(0, details)
                 newly_added += 1
                 existing_ids.add(details['ID'])
@@ -468,7 +467,9 @@ def add_by_title():
     # If only one match, add it directly
     if len(matches) == 1:
         match_id = matches[0]["id"]
-        if any(g['ID'] == match_id for g in movies):
+        match_id = str(matches[0]["id"])
+
+        if any(str(g['ID']) == match_id for g in movies):
             flash(f"{title} is already in the database.", "info")
             return redirect(url_for('index'))
         else:
