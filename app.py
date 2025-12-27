@@ -401,14 +401,27 @@ def confirm_add_all():
         movies = load_tsv()
         existing_ids = {g['ID'] for g in movies}
         newly_added = 0
+        old_titles = []
         for movie_id in selected_movie_ids:
             details = get_tmdb_movie_details(movie_id)
-            if details and details['ID'] not in existing_ids:
+
+            if not details:
+                continue
+
+            if details['ID'] not in existing_ids:
                 movies.insert(0, details)
                 newly_added += 1
                 existing_ids.add(details['ID'])
+            else:
+                old_title = details['Title']
+                old_titles.append(old_title)
 
         save_tsv(movies)
+        if old_titles:
+                flash(
+                    f"{', '.join(old_titles)} already in the database.",
+                    "info"
+                )
         flash(f"Added {newly_added} new movies to the database.", "success")
 
         # Clear session data
