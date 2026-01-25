@@ -76,6 +76,16 @@
     });
   });
 </script>
+{% macro sort_link(label, field) %}
+  {% set is_active = (sort_by == field) %}
+  {% set next_dir = 'desc' if is_active and direction == 'asc' else 'asc' %}
+  <a href="{{ url_for('index', sort=field, dir=next_dir) }}">
+    {{ label }}
+    {% if is_active %}
+      {% if direction == 'asc' %} ▲{% else %} ▼{% endif %}
+    {% endif %}
+  </a>
+{% endmacro %}
 <body>
   <h1>Movie Database</h1>
   <img src="{{ url_for('static', filename='images/TMDB.png') }}" alt="Logo" style="height: 80px;">
@@ -131,11 +141,60 @@
   {% endif %}
   <table border="1">
     <tr>
-      <th><a href="{{ url_for('index', sort='title') }}">Title{% if sort_by == 'title' %} ▲{% endif %}</a></th>
-      <th><a href="{{ url_for('index', sort='year') }}">Year{% if sort_by == 'year' %} ▲{% endif %}</a></th>
-      <th><a href="{{ url_for('index', sort='runtime') }}">Runtime{% if sort_by == 'runtime' %} ▲{% endif %}</a></th>
-      <th><a href="{{ url_for('index', sort='actors') }}">Actor(s){% if sort_by == 'actors' %} ▲{% endif %}</a></th>
-      <th><a href="{{ url_for('index', sort='notes') }}">Notes{% if sort_by == 'notes' %} ▲{% endif %}</a></th>
+      <th>
+        <a href="{{ url_for('index',
+                            sort='title',
+                            dir='desc' if sort_by == 'title' and direction == 'asc' else 'asc') }}">
+          Title
+          {% if sort_by == 'title' %}
+            {% if direction == 'asc' %} ▲{% else %} ▼{% endif %}
+          {% endif %}
+        </a>
+      </th>
+
+      <th>
+        <a href="{{ url_for('index',
+                            sort='year',
+                            dir='desc' if sort_by == 'year' and direction == 'asc' else 'asc') }}">
+          Year
+          {% if sort_by == 'year' %}
+            {% if direction == 'asc' %} ▲{% else %} ▼{% endif %}
+          {% endif %}
+        </a>
+      </th>
+
+      <th>
+        <a href="{{ url_for('index',
+                            sort='runtime',
+                            dir='desc' if sort_by == 'runtime' and direction == 'asc' else 'asc') }}">
+          Runtime
+          {% if sort_by == 'runtime' %}
+            {% if direction == 'asc' %} ▲{% else %} ▼{% endif %}
+          {% endif %}
+        </a>
+      </th>
+
+      <th>
+        <a href="{{ url_for('index',
+                            sort='actors',
+                            dir='desc' if sort_by == 'actors' and direction == 'asc' else 'asc') }}">
+          Actor(s)
+          {% if sort_by == 'actors' %}
+            {% if direction == 'asc' %} ▲{% else %} ▼{% endif %}
+          {% endif %}
+        </a>
+      </th>
+
+      <th>
+        <a href="{{ url_for('index',
+                            sort='notes',
+                            dir='desc' if sort_by == 'notes' and direction == 'asc' else 'asc') }}">
+          Notes
+          {% if sort_by == 'notes' %}
+            {% if direction == 'asc' %} ▲{% else %} ▼{% endif %}
+          {% endif %}
+        </a>
+      </th>
       <th>Actions</th>
     </tr>
     {% for movie in movies %}

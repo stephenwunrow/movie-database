@@ -211,7 +211,10 @@ def logout():
 def index():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    sort_by = request.args.get('sort')
+
+    sort_by = request.args.get('sort', 'title')
+    direction = request.args.get('dir', 'asc')
+    reverse = (direction == 'desc')
 
     if 'search_results' in session:
         movies = json.loads(session['search_results'])  # load filtered movies
@@ -225,17 +228,17 @@ def index():
 
     if sort_by:
         if sort_by == 'title':
-            movies.sort(key=lambda g: g['Title'].lower())
+            movies.sort(key=lambda g: g['Title'].lower() if g['Title'] else '', reverse=reverse)
         elif sort_by == 'year':
-            movies.sort(key=lambda g: float(g['Year']) if g['Year'] else 0)
+            movies.sort(key=lambda g: float(g['Year']) if g['Year'] else 0, reverse=reverse)
         elif sort_by == 'runtime':
-            movies.sort(key=lambda g: float(g['Runtime']) if g['Runtime'] else 0)
+            movies.sort(key=lambda g: float(g['Runtime']) if g['Runtime'] else 0, reverse=reverse)
         elif sort_by == 'actors':
-            movies.sort(key=lambda g: g['Actors'].lower() if g['Actors'] else '')
+            movies.sort(key=lambda g: g['Actors'].lower() if g['Actors'] else '', reverse=reverse)
         elif sort_by == 'notes':
-            movies.sort(key=lambda g: g['Notes'].lower() if g['Notes'] else '')
+            movies.sort(key=lambda g: g['Notes'].lower() if g['Notes'] else '', reverse=reverse)
 
-    return render_template('index.html', movies=movies, searched=searched, sort_by=sort_by, count=count)
+    return render_template('index.html', movies=movies, searched=searched, sort_by=sort_by, direction=direction, count=count)
 
 
 @app.route('/upload-image', methods=['POST'])
