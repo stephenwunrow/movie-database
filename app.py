@@ -92,38 +92,47 @@ def strip_punctuation(text):
 def search_tmdb_movies(title):
     """Search TMDB for movies by title. Return a list of potential matches."""
     url = "https://api.themoviedb.org/3/search/movie"
-    params = {
-        "api_key": tmdb_key,
-        "query": title,
-        "include_adult": False  # optional
-    }
-
-    response = requests.get(url, params=params)
-    if response.status_code != 200:
-        print("Error:", response.status_code)
-        return []
-
-    data = response.json()
-    results = data.get("results", [])
-    if not results:
-        return []
 
     title_clean = strip_punctuation(title.lower())
     matches = []
 
-    for movie in results:
-        movie_title = movie.get("title", "")
-        movie_title_clean = strip_punctuation(movie_title.lower().strip())
-        movie_title_clean = re.sub('  ', ' ', movie_title_clean)
-        year = movie.get("release_date", "").split("-")[0]
+    page = 1
+    total_pages = 1  # will be updated after first request
 
-        # Match exact title or partial match containing search term
-        if title_clean in movie_title_clean:
-            matches.append({
-                "id": movie.get("id"),
-                "title": movie_title,
-                "release_date": year
-            })
+    while page <= total_pages:
+        params = {
+            "api_key": tmdb_key,
+            "query": title,
+            "include_adult": False,
+            "page": page
+        }
+
+        response = requests.get(url, params=params)
+        if response.status_code != 200:
+            print("Error:", response.status_code)
+            break
+
+        data = response.json()
+        total_pages = data.get("total_pages", 1)
+        results = data.get("results", [])
+
+        if not results:
+            break
+
+        for movie in results:
+            movie_title = movie.get("title", "")
+            movie_title_clean = strip_punctuation(movie_title.lower().strip())
+            movie_title_clean = re.sub('  ', ' ', movie_title_clean)
+            year = movie.get("release_date", "").split("-")[0]
+
+            if title_clean in movie_title_clean:
+                matches.append({
+                    "id": movie.get("id"),
+                    "title": movie_title,
+                    "release_date": year
+                })
+
+        page += 1
 
     return matches
 
