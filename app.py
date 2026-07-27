@@ -67,8 +67,8 @@ def extract_titles_from_image(image_path):
     except Exception as e:
         flash(f"gemini-2.5-flash failed with error: {e}. Trying gemini-2.5-flash-lite...", "warning")
         try:
-            response = try_model("gemini-2.5-flash-lite")
-            flash("Used model: gemini-2.5-flash-lite", "info")
+            response = try_model("gemini-3.5-flash")
+            flash("Used model: gemini-3.5-flash", "info")
         except Exception as e2:
             flash(f"Both models failed. Last error: {e2}", "error")
             return []
